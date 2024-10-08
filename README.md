@@ -1,1 +1,1 @@
-# EconoMe
+# EconoMe 💰
