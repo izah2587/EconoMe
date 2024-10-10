@@ -12,6 +12,7 @@ db_name = os.getenv("db_name")
 
 
 def create_tables(cursor):
+    
     # Create Users table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS Users (
@@ -38,7 +39,7 @@ def create_tables(cursor):
     );
     """)
 
-    # Create Expenses table (without the category field)
+    # Create Expenses table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS Expenses (
         expense_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -60,6 +61,7 @@ def create_tables(cursor):
         last_checked_at TIMESTAMP NOT NULL
     );
     """)
+
 
 def populate_data(cursor):
     # Sample data for Users
@@ -132,11 +134,6 @@ try:
         # Create a cursor object
         cursor = conn.cursor()
 
-        # Create tables
-        create_tables(cursor)
-
-        # Populate tables with sample data
-        populate_data(cursor)
 
         # Commit changes
         conn.commit()
@@ -149,7 +146,6 @@ try:
 
         # Close the cursor and connection
         cursor.close()
-        conn.close()
-
+        conn.close
 except Error as error:
     print(f"Error: {error}")
