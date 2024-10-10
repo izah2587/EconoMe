@@ -1,2 +1,2 @@
 # EconoMe 💰
-## The only finance app you need!
+## The only finance app you need!!
