@@ -10,7 +10,9 @@ db_user = os.getenv("db_user")
 db_pass = os.getenv("db_pass")
 db_name = os.getenv("db_name")
 
+
 def create_tables(cursor):
+    
     # Create Users table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS Users (
@@ -37,7 +39,7 @@ def create_tables(cursor):
     );
     """)
 
-    # Create Expenses table with a category field
+    # Create Expenses table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS Expenses (
         expense_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -60,6 +62,7 @@ def create_tables(cursor):
     );
     """)
 
+
 def populate_data(cursor):
     # Sample data for Users
     users = [
@@ -69,7 +72,7 @@ def populate_data(cursor):
     ]
     
     cursor.executemany("""
-    INSERT INTO Users (name, email, password, dob, income) VALUES (%s, %s, %s, %s, %s);
+    INSERT INTO Users (name, email, dob, income) VALUES (%s, %s, %s, %s);
     """, users)
 
     # Sample data for Goals
@@ -80,7 +83,8 @@ def populate_data(cursor):
     ]
 
     cursor.executemany("""
-    INSERT INTO Goals (status, set_date, due_date, goal_type, current_amount, target_amount, user_id) VALUES (%s, %s, %s, %s, %s, %s, %s);
+    INSERT INTO Goals (status, set_date, due_date, goal_type, current_amount, target_amount, user_id) 
+    VALUES (%s, %s, %s, %s, %s, %s, %s);
     """, goals)
 
     # Sample data for Expenses
@@ -91,7 +95,7 @@ def populate_data(cursor):
     ]
 
     cursor.executemany("""
-    INSERT INTO Expenses (date, amount, category, user_id) VALUES (%s, %s, %s, %s);
+    INSERT INTO Expenses (date, amount, user_id) VALUES (%s, %s, %s);
     """, expenses)
 
     # Sample data for Marketplace
@@ -130,11 +134,6 @@ try:
         # Create a cursor object
         cursor = conn.cursor()
 
-        # Create tables
-        create_tables(cursor)
-
-        # Populate tables with sample data
-        populate_data(cursor)
 
         # Commit changes
         conn.commit()
@@ -147,7 +146,6 @@ try:
 
         # Close the cursor and connection
         cursor.close()
-        conn.close()
-
+        conn.close
 except Error as error:
     print(f"Error: {error}")
