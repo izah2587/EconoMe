@@ -33,7 +33,7 @@ This is a command-line application for managing a MySQL database with users, goa
 
     **On Windows:**
 
-   ```bash
+   bash
     Copy code
     .venv\Scripts\activate
 
