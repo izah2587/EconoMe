@@ -25,7 +25,7 @@ This is a command-line application for managing a MySQL database with users, goa
 
 2. **Navigate to the project directory:**
 
-    cd path/to/your-repository
+    ```cd path/to/your-repository
 
 3. **Set Up a Virtual Environment (Optional but Recommended)**
 
