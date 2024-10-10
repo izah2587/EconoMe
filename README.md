@@ -25,26 +25,27 @@ This is a command-line application for managing a MySQL database with users, goa
 
 2. **Navigate to the project directory:**
 
-    ```cd path/to/your-repository
+    ```bash
+    cd path/to/your-repository
 
 3. **Set Up a Virtual Environment (Optional but Recommended)**
 
-    python -m venv .venv
+   
+   python -m venv .venv
 
     **On Windows:**
 
-   bash
-    Copy code
+   ```bash
     .venv\Scripts\activate
 
 
    **On macOS and Linux:**
 
-    bash
+    ```bash
     Copy code
     source .venv/bin/activate
 
-4. **Install Required Packages**
+5. **Install Required Packages**
     Once the virtual environment is activated, install the necessary dependencies from the requirements.txt file:
 
     bash
