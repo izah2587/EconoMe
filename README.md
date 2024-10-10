@@ -50,7 +50,8 @@ This is a command-line application for managing a MySQL database with users, goa
     bash
     Copy code
     pip install -r requirements.txt
-5. **Set Up Your .env File**
+   
+6. **Set Up Your .env File**
     To securely store your MySQL database credentials, you need to set up a .env file in the root of the project directory:
 
     Create a new .env file in the project root:
@@ -71,7 +72,7 @@ This is a command-line application for managing a MySQL database with users, goa
 
     Note: The .env file contains sensitive information. Make sure it's included in your .gitignore file to prevent it from being committed to version control. 
 
-6. **Add .env to .gitignore**
+7. **Add .env to .gitignore**
     Ensure the .env file is excluded from version control by adding it to your .gitignore file. If you don't have a .gitignore file, create one and add the following line:
 
     bash
@@ -79,7 +80,7 @@ This is a command-line application for managing a MySQL database with users, goa
     .env
     This will prevent the .env file from being accidentally pushed to the repository.
 
-7. **Run the Application**
+8. **Run the Application**
     Once everything is set up, you can run the Python script to create tables, populate them with sample data, and export the data to CSV files:
 
     bash
@@ -90,7 +91,7 @@ This is a command-line application for managing a MySQL database with users, goa
     Populates tables: Inserts sample data into each table.
     Exports data to CSV: Exports the contents of each table into a CSV file, saving the files as Users.csv, Goals.csv, Expenses.csv, and Marketplace.csv in the project directory.
 
-8. **Deactivate the Virtual Environment (Optional)**
+9. **Deactivate the Virtual Environment (Optional)**
     If you're done working on the project and want to deactivate the virtual environment, you can run:
 
     bash
