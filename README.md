@@ -33,23 +33,20 @@ This is a command-line application for managing a MySQL database with users, goa
    
    python -m venv .venv
 
-    **On Windows:**
+    - On Windows:
 
    ```bash
     .venv\Scripts\activate
 
-
-**On macOS and Linux:**
+   - On macOS and Linux:
 
     ```bash
-    Copy code
     source .venv/bin/activate
 
 5. **Install Required Packages**
     Once the virtual environment is activated, install the necessary dependencies from the requirements.txt file:
 
     ```bash
-    Copy code
     pip install -r requirements.txt
    
 6. **Set Up Your .env File**
@@ -58,13 +55,11 @@ This is a command-line application for managing a MySQL database with users, goa
     Create a new .env file in the project root:
 
     ```bash
-    Copy code
     touch .env
     
 **Open the .env file in a text editor and add your MySQL connection details in the following format:**
 
     ```bash
-    Copy code
 
    - **DB_HOST=your_mysql_host**
    - **DB_USER=your_mysql_username**
@@ -78,13 +73,11 @@ This is a command-line application for managing a MySQL database with users, goa
     Ensure the .env file is excluded from version control by adding it to your .gitignore file. If you don't have a .gitignore file, create one and add the following line:
 
     ```bash
-    Copy code
     .env
 
 8. **Run the Application**
     Once everything is set up, you can run the Python script to create tables, populate them with sample data, and export the data to CSV files:
     ```bash
-    Copy code
     python main.py
     
 **What Happens When You Run the Application:**
@@ -95,5 +88,4 @@ This is a command-line application for managing a MySQL database with users, goa
 9. **Deactivate the Virtual Environment (Optional)**
 
     ```bash
-    Copy code
     deactivate
