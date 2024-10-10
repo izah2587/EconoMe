@@ -1,11 +1,14 @@
 import mysql.connector
 from mysql.connector import Error
+from dotenv import load_dotenv
+import os
 
-# Database connection parameters
-db_host = '34.44.42.132'
-db_name = 'econome'
-db_user = 'econome'
-db_pass = ')Leb}|JtH0D4b4xh'
+load_dotenv()  # Loads variables from .env file into the environment
+
+db_host = os.getenv("db_host")
+db_user = os.getenv("db_user")
+db_pass = os.getenv("db_pass")
+db_name = os.getenv("db_name")
 
 try:
     # Establish the connection
