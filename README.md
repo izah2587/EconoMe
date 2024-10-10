@@ -63,10 +63,10 @@ This is a command-line application for managing a MySQL database with users, goa
     bash
     Copy code
 
-    DB_HOST=your_mysql_host
-    DB_USER=your_mysql_username
-    DB_PASS=your_mysql_password
-    DB_NAME=your_database_name
+   - **DB_HOST=your_mysql_host**
+   - **DB_USER=your_mysql_username**
+   - **DB_PASS=your_mysql_password**
+   - **DB_NAME=your_database_name**
     Replace the placeholders with your actual MySQL connection details.
 
     Note: The .env file contains sensitive information. Make sure it's included in your .gitignore file to prevent it from being committed to version control. 
