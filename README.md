@@ -70,10 +70,10 @@ This is a command-line application for managing a MySQL database with users, goa
     Open the `.env` file in a text editor and add your MySQL connection details in the following format:
 
     ```bash
-    DB_HOST=your_mysql_host
-    DB_USER=your_mysql_username
-    DB_PASS=your_mysql_password
-    DB_NAME=your_database_name
+    db_host=your_mysql_host
+    db_user=your_mysql_username
+    db_pass=your_mysql_password
+    db_name=your_database_name
     ```
 
     Replace the placeholders with your actual MySQL connection details.
