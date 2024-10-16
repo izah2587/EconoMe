@@ -2,6 +2,7 @@ import mysql.connector
 from mysql.connector import Error
 from dotenv import load_dotenv
 import os
+import csv
 
 load_dotenv()  # Loads variables from .env file into the environment
 
