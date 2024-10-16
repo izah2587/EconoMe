@@ -1,4 +1,4 @@
-user_id,name,email,password,dob,income
-1,Alice Johnson,alice.johnson@example.com,securepass123,1990-01-15,70000.00
-2,Bob Smith,bob.smith@example.com,securepass456,1985-05-23,60000.00
-3,Charlie Brown,charlie.brown@example.com,securepass789,1992-08-30,80000.00
+user_id,name,email,dob,income
+1,Alice Johnson,alice.johnson@example.com,1990-01-15,70000.00
+2,Bob Smith,bob.smith@example.com,1985-05-23,60000.00
+3,Charlie Brown,charlie.brown@example.com,1992-08-30,80000.00

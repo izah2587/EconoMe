@@ -15,6 +15,8 @@ db_name = os.getenv("db_name")
 def create_tables(cursor):
     
     # Create Users table
+    cursor.execute("DROP TABLE IF EXISTS Users;")
+
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS Users (
         user_id INT AUTO_INCREMENT PRIMARY KEY,
