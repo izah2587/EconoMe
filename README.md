@@ -22,7 +22,7 @@ This is a command-line application for managing a MySQL database with users, goa
 1. **Clone this repository** or download the source code:
 
    ```bash
-   git clone https://github.com/your-username/your-repository.git
+   git clone https://github.com/izah2587/EconoMe.git
    ```
 
 2. **Navigate to the project directory:**
