@@ -112,5 +112,134 @@ This is a command-line application for managing a MySQL database with users, goa
     ```
 
 
+# EconoMe API
+
+## API Description and purpose 
+The EconoMe User Management API is a RESTful service designed to manage user information within a MySQL database. It provides capabilities to create, read, update, and delete user data, facilitating administrative tasks and user data handling for applications requiring a robust user management system. 
+
+## Setting up the Database
+
+1. **Create the Database: Log into your MySQL server and create a new database named user_management:**
+   
+   ```sql
+     CREATE DATABASE user_management;
+  
+2. **Initialize the Tables: Use the provided SQL script to create the necessary tables within the database:**
+   
+   ```bash
+   mysql -u [your-username] -p user_management < database_setup.sql
+   ```
+## Install Dependencies
+**Install the required dependencies by running:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+## Running the API
+**To run the API, execute the following command in the project directory:**
+   ```bash
+uvicorn main:app --reload
+   ```
+
+**API Endpoints**
+1. **GET /users/: Retrieves a list of all users**
+   
+   **Response example**
+   ```json
+        [
+     {
+       "name": "John Doe",
+       "email": "john.doe@example.com",
+       "dob": "1990-04-01",
+       "income": 55000
+     }
+   ]
+
+  
+2. **GET /users/{user_id}: Retrieves a user by their unique ID**
+   
+   **Response example**
+   ```json
+   {
+     "name": "John Doe",
+     "email": "john.doe@example.com",
+     "dob": "1990-04-01",
+     "income": 55000
+   }
+
+   ```
+
+3. **POST /users/: Adds a new user to the database**
+
+      **Response example**
+   ```json
+   {
+     "message": "User created successfully"
+   }
+
+   ```
+4. **PUT /users/{user_id}: Updates an existing user's data**
+   
+      **Response example**
+   ```json
+   {
+     "message": "User updated successfully"
+   }
+
+   ```
+ 5. **DELETE /users/{user_id}: Removes a user from the database**
+    
+      **Response example**
+   ```json
+   {
+     "message": "User deleted successfully"
+   }
+
+   ```
+## Using Postman to Test the API
+**Import the EconoMe.postman_collection.json into Postman to test the various endpoints.**
+1. **Creating a User:**
+   
+   ```http
+   POST /users/
+   Content-Type: application/json
+   
+   {
+     "name": "John Doe",
+     "email": "john.doe@example.com",
+     "dob": "1990-04-01",
+     "income": 55000
+   }
+      ```
 
 
+  
+2. **Retrieve All Users:**
+   
+   ```http
+   GET /users/
+
+   ```
+
+3. **Update a User:**
+
+   ```http
+   PUT /users/1
+   Content-Type: application/json
+   
+   {
+     "name": "Johnathan Doe",
+     "email": "johnathan.doe@example.com",
+     "dob": "1990-04-01",
+     "income": 57000
+   }
+
+   ```
+4. **Delete a User:**
+   
+   ```http
+   DELETE /users/1
+
+   ```
+    
+    
