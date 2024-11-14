@@ -3,10 +3,8 @@ from mysql.connector import Error
 from dotenv import load_dotenv
 import os
 import csv
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from fastapi import FastAPI
-
-app = FastAPI()
 
 # Load environment variables
 load_dotenv()
