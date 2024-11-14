@@ -2,3 +2,13 @@ user_id,name,email,dob,income
 1,Alice Johnson,alice.johnson@example.com,1990-01-15,70000.00
 2,Bob Smith,bob.smith@example.com,1985-05-23,60000.00
 3,Charlie Brown,charlie.brown@example.com,1992-08-30,80000.00
+2,Bob Smith,bob.smith@example.com,1985-05-23,60000.00
+3,Charlie Brown,charlie.brown@example.com,1992-08-30,80000.00
+7,Hamza Arshad,hamzaarshad2004@gmail.com,2004-02-06,0.00
+8,John Doe,john.doe@example.com,1990-01-01,50000.00
+9,Izah Sohail,izahs@example.com,2003-08-20,100000.00
+10,Christian Grewell,grewell@example.com,1980-08-20,9999999.00
+11,Barney Stinson,barney@example.com,1983-08-20,909090.00
+13,Andrew Garfield,AG@example.com,1989-08-20,100900.00
+14,Troy,troy@example.com,1993-08-20,90900.00
+15,Chandler Bing,CB@example.com,1973-08-20,90900.00
