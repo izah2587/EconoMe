@@ -5,6 +5,9 @@ import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import csv
+from datetime import datetime
+import re
 
 # Load environment variables
 load_dotenv()
@@ -181,6 +184,82 @@ async def delete_user(user_id: int):
         if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="User not found")
         return {"message": "User deleted successfully"}
+    except Error as error:
+        raise HTTPException(status_code=500, detail=str(error))
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+# Function to upload data from CSV to the database
+def upload_csv_data():
+    csv_file_path = "trader_joes_products.csv"  # The specific CSV file
+
+    try:
+        conn = create_connection()
+        if not conn:
+            raise HTTPException(status_code=500, detail="Database connection failed")
+        cursor = conn.cursor()
+
+        # Read and insert data from the CSV file
+        with open(csv_file_path, mode='r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                # Clean the 'price' field to remove any non-numeric characters
+                price_str = row['price']
+                cleaned_price = re.sub(r'[^\d.]', '', price_str)  # Keep only digits and decimal points
+
+                # Convert the cleaned price to a float
+                try:
+                    price = float(cleaned_price)
+                except ValueError:
+                    print(f"Invalid price format for product {row['product_name']}: {price_str}")
+                    continue  # Skip this row if the price is invalid
+
+                # Check for existing entry to avoid duplicates
+                cursor.execute("""
+                    SELECT COUNT(*) FROM Marketplace WHERE product_name = %s AND store_name = %s
+                """, (row['product_name'], row['store_name']))
+                count = cursor.fetchone()[0]
+
+                if count == 0:  # Insert only if the entry doesn't already exist
+                    query = """
+                    INSERT INTO Marketplace (store_name, product_name, url, price, last_checked_at)
+                    VALUES (%s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(query, (
+                        row['store_name'],
+                        row['product_name'],
+                        row['url'],
+                        price,  # Insert the cleaned numeric price
+                        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    ))
+
+        conn.commit()
+        print(f"Data from {csv_file_path} uploaded successfully")
+    except FileNotFoundError:
+        print(f"CSV file '{csv_file_path}' not found")
+    except Error as error:
+        print(f"Error during CSV upload: {error}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+# Combined endpoint to upload CSV data and return all products
+@app.get("/products/")
+async def get_products():
+    # Upload data from CSV before fetching products
+    upload_csv_data()
+
+    try:
+        conn = create_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM Marketplace;")
+        products = cursor.fetchall()
+        return products
     except Error as error:
         raise HTTPException(status_code=500, detail=str(error))
     finally:
