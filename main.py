@@ -1,17 +1,24 @@
 import mysql.connector
 from mysql.connector import Error
-from dotenv import load_dotenv
-import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import csv
 from datetime import datetime, date
 import re
+from typing import Optional
+import pandas as pd
+import openai
 import bcrypt
+from dotenv import load_dotenv
+import os
+
 
 # Load environment variables
 load_dotenv()
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
+  # Add your OpenAI API key
 
 db_host = os.getenv("db_host")
 db_user = os.getenv("db_user")
@@ -29,6 +36,8 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
 )
+
+
 
 # Define request models for login and registration
 class LoginRequest(BaseModel):
@@ -128,8 +137,9 @@ async def register(request: RegisterRequest):
 # Function to upload data from CSV to the database
 def upload_csv_data():
     csv_file_paths = [
-        "trader_joes_products.csv",  # Trader Joe's products
-        "scraped_products.csv"       # Target products
+        "target_products.csv",
+        "trader_joes_products.csv"  # Trader Joe's products
+       # "target_products.csv"       # Target products
     ]
 
     try:
@@ -147,6 +157,7 @@ def upload_csv_data():
             with open(csv_file_path, mode='r', encoding='utf-8') as file:
                 reader = csv.DictReader(file)
                 for row in reader:
+                    print(row)
                     # Clean the 'price' field to remove any non-numeric characters
                     price_str = row['price']
                     cleaned_price = re.sub(r'[^\d.]', '', price_str)
@@ -306,6 +317,196 @@ async def create_goal(goal: GoalRequest):
 
 
 
+# @app.post("/goals/")
+# async def create_goal(goal: GoalRequest):
+#     conn = create_connection()
+#     if conn is None:
+#         raise HTTPException(status_code=500, detail="Database connection failed")
+#     cursor = conn.cursor(dictionary=True)
+#     try:
+#         query = "INSERT INTO Goals (name, target_amount, current_amount, deadline, user_id) VALUES (%s, %s, %s, %s, %s)"
+#         cursor.execute(query, (goal.name, goal.target_amount, goal.current_amount, goal.deadline, goal.user_id))
+#         conn.commit()
+#         return {"message": "Goal added successfully"}
+#     except Error as error:
+#         raise HTTPException(status_code=500, detail=str(error))
+#     finally:
+#         if cursor:
+#             cursor.close()
+#         if conn:
+#             conn.close()
+
+# @app.get("/goals/{user_id}")
+# async def get_goals(user_id: int):
+#     conn = create_connection()
+#     if conn is None:
+#         raise HTTPException(status_code=500, detail="Database connection failed")
+#     cursor = conn.cursor(dictionary=True)
+#     try:
+#         cursor.execute("SELECT * FROM Goals WHERE user_id = %s", (user_id,))
+#         goals = cursor.fetchall()
+#         return goals
+#     except Error as error:
+#         raise HTTPException(status_code=500, detail=str(error))
+#     finally:
+#         if cursor:
+#             cursor.close()
+#         if conn:
+#             conn.close()
+
+# @app.put("/goals/{goal_id}")
+# async def update_goal(goal_id: int, goal: GoalRequest):
+#     conn = create_connection()
+#     if conn is None:
+#         raise HTTPException(status_code=500, detail="Database connection failed")
+#     cursor = conn.cursor()
+#     try:
+#         query = "UPDATE Goals SET name = %s, target_amount = %s, current_amount = %s, deadline = %s WHERE goal_id = %s AND user_id = %s;"
+#         cursor.execute(query, (goal.name, goal.target_amount, goal.current_amount, goal.deadline, goal_id, goal.user_id))
+#         conn.commit()
+#         if cursor.rowcount == 0:
+#             raise HTTPException(status_code=404, detail="Goal not found")
+#         return {"message": "Goal updated successfully"}
+#     except Error as error:
+#         raise HTTPException(status_code=500, detail=str(error))
+#     finally:
+#         if cursor:
+#             cursor.close()
+#         if conn:
+#             conn.close()
+
+
+# @app.delete("/goals/{goal_id}")
+# async def delete_goal(goal_id: int):
+#     conn = create_connection()
+#     if conn is None:
+#         raise HTTPException(status_code=500, detail="Database connection failed")
+#     cursor = conn.cursor()
+#     try:
+#         query = "DELETE FROM Goals WHERE goal_id = %s;"
+#         cursor.execute(query, (goal_id,))
+#         conn.commit()
+#         if cursor.rowcount == 0:
+#             raise HTTPException(status_code=404, detail="Goal not found")
+#         return {"message": "Goal deleted successfully"}
+#     except Error as error:
+#         raise HTTPException(status_code=500, detail=str(error))
+#     finally:
+#         if cursor:
+#             cursor.close()
+#         if conn:
+#             conn.close()
+
+
+
+# Function to read products from a CSV file using Pandas
+def read_products_from_csv(file_path: str) -> pd.DataFrame:
+    """Reads product data from a CSV file and returns it as a Pandas DataFrame."""
+    try:
+        # Load the CSV into a DataFrame
+        df = pd.read_csv(file_path)
+
+        # Clean the 'price' column by removing non-numeric characters and converting it to float
+        df['price'] = df['price'].replace({r'[^\d.]': ''}, regex=True)  # Keep only digits and decimal points
+        df['price'] = pd.to_numeric(df['price'], errors='coerce')  # Convert to float, invalid values become NaN
+
+        # Remove rows where price is NaN (invalid data)
+        df = df.dropna(subset=['price'])
+
+        return df[['product_name', 'price']]  # Return only the necessary columns
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"CSV file '{file_path}' not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Price comparison function using OpenAI
+def generate_price_comparison_summary(target_df: pd.DataFrame, trader_joes_df: pd.DataFrame) -> str:
+    # Convert DataFrames to a string format for OpenAI
+    target_products_str = target_df.to_dict(orient='records')
+    trader_joes_products_str = trader_joes_df.to_dict(orient='records')
+
+    prompt = f"""
+    You are a price comparison assistant. I will provide you with product prices from two stores, Target and Trader Joe's.
+
+    Please compare the prices of the following products between the two stores. You do not need to rely on exact product names but instead use your understanding to evaluate if two products are similar. For example, "Red Onion" and "Onion" can be considered the same. Use keywords, context, and common product categories to determine similarity. If two products are different but belong to the same category (e.g., onions, tomatoes, garlic, herbs), treat them as similar.
+
+    If a product is found in both stores, calculate the percentage price difference. If a product is only found in one store, try to find a similar product from the other store and treat it as part of the same category. If no equivalent product is found in the other store, ignore it in your comparison.
+
+    For the summary, display **5 example products** that are available in both stores, showing their price differences and the percentage difference between them. Each example should include the following:
+    - Product Name
+    - Target Price
+    - Trader Joe's Price
+    - Percentage Price Difference (rounded to 2 decimal places)
+
+    Ensure that the examples reflect a range of price differences:
+    1. One example where Target is more expensive.
+    2. One example where Trader Joe's is more expensive.
+    3. One example where the prices are equal.
+    4. The other examples should show diverse products with varied price differences.
+
+    Please also provide a general **overall summary** comparing the two stores:
+    - Which store generally has better prices (Target or Trader Joe's)?
+    - What is the approximate percentage difference in prices across all products compared (if applicable)?
+
+    Here is the data you should consider:
+
+    Target Products:
+    {target_products_str}
+
+    Trader Joe's Products:
+    {trader_joes_products_str}
+
+    Please provide the results in an HTML format. Use the following structure:
+
+    <h3>Example Products:</h3>
+    <ul>
+        <li><strong>Product Name:</strong> Product1 <br> <strong>Target Price:</strong> $5.89 <br> <strong>Trader Joe's Price:</strong> $2.29 <br> <strong>Percentage Price Difference:</strong> 61.16%</li>
+        <!-- Add other products here -->
+    </ul>
+
+    <h3>Overall Summary</h3>
+    <p>Trader Joe's generally has better prices as seen in the provided examples. The average savings when shopping at Trader Joe's compared to Target is approximately 33.05%.</p>
+
+    Please format the output using <strong>HTML tags</strong> to improve readability.
+
+    Dont include ```html or anything. Include a brief text in <p> in the beginning along the lines 'Let's have a look at the data we obtained this week'
+
+    Please provide a concise and professional summary, avoiding unnecessary details.
+    """
+    print('woop')
+    
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",  # Or another model of your choice
+        messages=[
+            {"role": "system", "content": "You are a price comparison assistant."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    print('womp')
+
+    # Get the OpenAI response (summary)
+    summary = response['choices'][0]['message']['content'].strip()
+    print(summary)
+    return summary
+
+# API endpoint to compare prices between Target and Trader Joe's
+@app.post("/compare_prices")
+async def compare_prices():
+    # Define file paths for the CSV files
+    print("im here")
+    target_file_path = "target_products.csv"  # Path to your Target CSV file
+    trader_joes_file_path = "trader_joes_products.csv"  # Path to your Trader Joe's CSV file
+
+    # Read products from both CSV files using Pandas
+    target_df = read_products_from_csv(target_file_path)
+    trader_joes_df = read_products_from_csv(trader_joes_file_path)
+    # Generate the price comparison summary using OpenAI
+    try:
+        summary = generate_price_comparison_summary(target_df, trader_joes_df)
+        return {"summary": summary}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+### MAIN APP STARTUP ###
 # Upload CSV data at startup
 @app.on_event("startup")
 async def startup_event():
