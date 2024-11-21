@@ -1,29 +1,28 @@
 import mysql.connector
 from mysql.connector import Error
+from dotenv import load_dotenv
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import csv
 from datetime import datetime, date
 import re
-from typing import Optional
-import pandas as pd
-import openai
 import bcrypt
-from dotenv import load_dotenv
-import os
+import openai
+import pandas as pd
 
 
 # Load environment variables
 load_dotenv()
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
-  # Add your OpenAI API key
-
 db_host = os.getenv("db_host")
 db_user = os.getenv("db_user")
 db_pass = os.getenv("db_pass")
 db_name = os.getenv("db_name")
+
+#openai key
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -36,8 +35,6 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
 )
-
-
 
 # Define request models for login and registration
 class LoginRequest(BaseModel):
@@ -137,9 +134,8 @@ async def register(request: RegisterRequest):
 # Function to upload data from CSV to the database
 def upload_csv_data():
     csv_file_paths = [
-        "target_products.csv",
-        "trader_joes_products.csv"  # Trader Joe's products
-       # "target_products.csv"       # Target products
+        "trader_joes_products.csv",  # Trader Joe's products
+        "scraped_products.csv"       # Target products
     ]
 
     try:
@@ -157,7 +153,6 @@ def upload_csv_data():
             with open(csv_file_path, mode='r', encoding='utf-8') as file:
                 reader = csv.DictReader(file)
                 for row in reader:
-                    print(row)
                     # Clean the 'price' field to remove any non-numeric characters
                     price_str = row['price']
                     cleaned_price = re.sub(r'[^\d.]', '', price_str)
@@ -315,90 +310,6 @@ async def create_goal(goal: GoalRequest):
         if conn:
             conn.close()
 
-
-
-# @app.post("/goals/")
-# async def create_goal(goal: GoalRequest):
-#     conn = create_connection()
-#     if conn is None:
-#         raise HTTPException(status_code=500, detail="Database connection failed")
-#     cursor = conn.cursor(dictionary=True)
-#     try:
-#         query = "INSERT INTO Goals (name, target_amount, current_amount, deadline, user_id) VALUES (%s, %s, %s, %s, %s)"
-#         cursor.execute(query, (goal.name, goal.target_amount, goal.current_amount, goal.deadline, goal.user_id))
-#         conn.commit()
-#         return {"message": "Goal added successfully"}
-#     except Error as error:
-#         raise HTTPException(status_code=500, detail=str(error))
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         if conn:
-#             conn.close()
-
-# @app.get("/goals/{user_id}")
-# async def get_goals(user_id: int):
-#     conn = create_connection()
-#     if conn is None:
-#         raise HTTPException(status_code=500, detail="Database connection failed")
-#     cursor = conn.cursor(dictionary=True)
-#     try:
-#         cursor.execute("SELECT * FROM Goals WHERE user_id = %s", (user_id,))
-#         goals = cursor.fetchall()
-#         return goals
-#     except Error as error:
-#         raise HTTPException(status_code=500, detail=str(error))
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         if conn:
-#             conn.close()
-
-# @app.put("/goals/{goal_id}")
-# async def update_goal(goal_id: int, goal: GoalRequest):
-#     conn = create_connection()
-#     if conn is None:
-#         raise HTTPException(status_code=500, detail="Database connection failed")
-#     cursor = conn.cursor()
-#     try:
-#         query = "UPDATE Goals SET name = %s, target_amount = %s, current_amount = %s, deadline = %s WHERE goal_id = %s AND user_id = %s;"
-#         cursor.execute(query, (goal.name, goal.target_amount, goal.current_amount, goal.deadline, goal_id, goal.user_id))
-#         conn.commit()
-#         if cursor.rowcount == 0:
-#             raise HTTPException(status_code=404, detail="Goal not found")
-#         return {"message": "Goal updated successfully"}
-#     except Error as error:
-#         raise HTTPException(status_code=500, detail=str(error))
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         if conn:
-#             conn.close()
-
-
-# @app.delete("/goals/{goal_id}")
-# async def delete_goal(goal_id: int):
-#     conn = create_connection()
-#     if conn is None:
-#         raise HTTPException(status_code=500, detail="Database connection failed")
-#     cursor = conn.cursor()
-#     try:
-#         query = "DELETE FROM Goals WHERE goal_id = %s;"
-#         cursor.execute(query, (goal_id,))
-#         conn.commit()
-#         if cursor.rowcount == 0:
-#             raise HTTPException(status_code=404, detail="Goal not found")
-#         return {"message": "Goal deleted successfully"}
-#     except Error as error:
-#         raise HTTPException(status_code=500, detail=str(error))
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         if conn:
-#             conn.close()
-
-
-
 # Function to read products from a CSV file using Pandas
 def read_products_from_csv(file_path: str) -> pd.DataFrame:
     """Reads product data from a CSV file and returns it as a Pandas DataFrame."""
@@ -475,17 +386,23 @@ def generate_price_comparison_summary(target_df: pd.DataFrame, trader_joes_df: p
     """
     print('woop')
     
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",  # Or another model of your choice
-        messages=[
-            {"role": "system", "content": "You are a price comparison assistant."},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    print('womp')
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a price comparison assistant."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        print('womp')
+        print(response['choices'][0]['message']['content'])  # Access the AI's response
+    except Exception as e:
+        print("API Call Failed:", str(e))
 
     # Get the OpenAI response (summary)
     summary = response['choices'][0]['message']['content'].strip()
+
     print(summary)
     return summary
 
@@ -494,7 +411,7 @@ def generate_price_comparison_summary(target_df: pd.DataFrame, trader_joes_df: p
 async def compare_prices():
     # Define file paths for the CSV files
     print("im here")
-    target_file_path = "target_products.csv"  # Path to your Target CSV file
+    target_file_path = "scraped_products.csv"  # Path to your Target CSV file
     trader_joes_file_path = "trader_joes_products.csv"  # Path to your Trader Joe's CSV file
 
     # Read products from both CSV files using Pandas
@@ -506,7 +423,8 @@ async def compare_prices():
         return {"summary": summary}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-### MAIN APP STARTUP ###
+
+
 # Upload CSV data at startup
 @app.on_event("startup")
 async def startup_event():
