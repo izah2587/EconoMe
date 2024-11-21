@@ -12,7 +12,6 @@ import bcrypt
 import openai
 import pandas as pd
 
-
 # Load environment variables
 load_dotenv()
 
