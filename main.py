@@ -8,6 +8,7 @@ from pydantic import BaseModel
 import csv
 from datetime import datetime
 import re
+from typing import Optional
 
 # Load environment variables
 load_dotenv()
@@ -39,6 +40,14 @@ class RegisterRequest(BaseModel):
     email: str
     dob: str
     income: float
+
+# class GoalRequest(BaseModel):#class for goal adding
+#     name: str
+#     target_amount: float
+#     current_amount: float
+#     deadline: str
+#     user_id: int 
+
 
 # Database connection helper
 def create_connection():
@@ -267,6 +276,89 @@ async def get_products():
             cursor.close()
         if conn:
             conn.close()
+
+
+
+
+# @app.post("/goals/")
+# async def create_goal(goal: GoalRequest):
+#     conn = create_connection()
+#     if conn is None:
+#         raise HTTPException(status_code=500, detail="Database connection failed")
+#     cursor = conn.cursor(dictionary=True)
+#     try:
+#         query = "INSERT INTO Goals (name, target_amount, current_amount, deadline, user_id) VALUES (%s, %s, %s, %s, %s)"
+#         cursor.execute(query, (goal.name, goal.target_amount, goal.current_amount, goal.deadline, goal.user_id))
+#         conn.commit()
+#         return {"message": "Goal added successfully"}
+#     except Error as error:
+#         raise HTTPException(status_code=500, detail=str(error))
+#     finally:
+#         if cursor:
+#             cursor.close()
+#         if conn:
+#             conn.close()
+
+# @app.get("/goals/{user_id}")
+# async def get_goals(user_id: int):
+#     conn = create_connection()
+#     if conn is None:
+#         raise HTTPException(status_code=500, detail="Database connection failed")
+#     cursor = conn.cursor(dictionary=True)
+#     try:
+#         cursor.execute("SELECT * FROM Goals WHERE user_id = %s", (user_id,))
+#         goals = cursor.fetchall()
+#         return goals
+#     except Error as error:
+#         raise HTTPException(status_code=500, detail=str(error))
+#     finally:
+#         if cursor:
+#             cursor.close()
+#         if conn:
+#             conn.close()
+
+# @app.put("/goals/{goal_id}")
+# async def update_goal(goal_id: int, goal: GoalRequest):
+#     conn = create_connection()
+#     if conn is None:
+#         raise HTTPException(status_code=500, detail="Database connection failed")
+#     cursor = conn.cursor()
+#     try:
+#         query = "UPDATE Goals SET name = %s, target_amount = %s, current_amount = %s, deadline = %s WHERE goal_id = %s AND user_id = %s;"
+#         cursor.execute(query, (goal.name, goal.target_amount, goal.current_amount, goal.deadline, goal_id, goal.user_id))
+#         conn.commit()
+#         if cursor.rowcount == 0:
+#             raise HTTPException(status_code=404, detail="Goal not found")
+#         return {"message": "Goal updated successfully"}
+#     except Error as error:
+#         raise HTTPException(status_code=500, detail=str(error))
+#     finally:
+#         if cursor:
+#             cursor.close()
+#         if conn:
+#             conn.close()
+
+
+# @app.delete("/goals/{goal_id}")
+# async def delete_goal(goal_id: int):
+#     conn = create_connection()
+#     if conn is None:
+#         raise HTTPException(status_code=500, detail="Database connection failed")
+#     cursor = conn.cursor()
+#     try:
+#         query = "DELETE FROM Goals WHERE goal_id = %s;"
+#         cursor.execute(query, (goal_id,))
+#         conn.commit()
+#         if cursor.rowcount == 0:
+#             raise HTTPException(status_code=404, detail="Goal not found")
+#         return {"message": "Goal deleted successfully"}
+#     except Error as error:
+#         raise HTTPException(status_code=500, detail=str(error))
+#     finally:
+#         if cursor:
+#             cursor.close()
+#         if conn:
+#             conn.close()
 
 ### MAIN APP STARTUP ###
 
