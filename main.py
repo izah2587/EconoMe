@@ -203,7 +203,11 @@ async def delete_user(user_id: int):
 
 # Function to upload data from CSV to the database
 def upload_csv_data():
-    csv_file_path = "trader_joes_products.csv"  # The specific CSV file
+    # List of CSV files to process
+    csv_files = [
+        "trader_joes_products.csv",  # Trader Joe's products
+        "scraped_products.csv"       # Target products
+    ]
 
     try:
         conn = create_connection()
@@ -211,44 +215,44 @@ def upload_csv_data():
             raise HTTPException(status_code=500, detail="Database connection failed")
         cursor = conn.cursor()
 
-        # Read and insert data from the CSV file
-        with open(csv_file_path, mode='r', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                # Clean the 'price' field to remove any non-numeric characters
-                price_str = row['price']
-                cleaned_price = re.sub(r'[^\d.]', '', price_str)  # Keep only digits and decimal points
+        for csv_file_path in csv_files:
+            with open(csv_file_path, mode='r', encoding='utf-8') as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    # Clean the 'price' field to remove any non-numeric characters
+                    price_str = row['price']
+                    cleaned_price = re.sub(r'[^\d.]', '', price_str)  # Keep only digits and decimal points
 
-                # Convert the cleaned price to a float
-                try:
-                    price = float(cleaned_price)
-                except ValueError:
-                    print(f"Invalid price format for product {row['product_name']}: {price_str}")
-                    continue  # Skip this row if the price is invalid
+                    # Convert the cleaned price to a float
+                    try:
+                        price = float(cleaned_price)
+                    except ValueError:
+                        print(f"Invalid price format for product {row['product_name']}: {price_str}")
+                        continue  # Skip this row if the price is invalid
 
-                # Check for existing entry to avoid duplicates
-                cursor.execute("""
-                    SELECT COUNT(*) FROM Marketplace WHERE product_name = %s AND store_name = %s
-                """, (row['product_name'], row['store_name']))
-                count = cursor.fetchone()[0]
+                    # Check for existing entry to avoid duplicates
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM Marketplace WHERE product_name = %s AND store_name = %s
+                    """, (row['product_name'], row['store_name']))
+                    count = cursor.fetchone()[0]
 
-                if count == 0:  # Insert only if the entry doesn't already exist
-                    query = """
-                    INSERT INTO Marketplace (store_name, product_name, url, price, last_checked_at)
-                    VALUES (%s, %s, %s, %s, %s)
-                    """
-                    cursor.execute(query, (
-                        row['store_name'],
-                        row['product_name'],
-                        row['url'],
-                        price,  # Insert the cleaned numeric price
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    ))
+                    if count == 0:  # Insert only if the entry doesn't already exist
+                        query = """
+                        INSERT INTO Marketplace (store_name, product_name, url, price, last_checked_at)
+                        VALUES (%s, %s, %s, %s, %s)
+                        """
+                        cursor.execute(query, (
+                            row['store_name'],
+                            row['product_name'],
+                            row['url'],
+                            price,  # Insert the cleaned numeric price
+                            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        ))
 
         conn.commit()
-        print(f"Data from {csv_file_path} uploaded successfully")
-    except FileNotFoundError:
-        print(f"CSV file '{csv_file_path}' not found")
+        print(f"Data from all CSV files uploaded successfully")
+    except FileNotFoundError as e:
+        print(f"File not found: {e}")
     except Error as error:
         print(f"Error during CSV upload: {error}")
     finally:
@@ -257,16 +261,22 @@ def upload_csv_data():
         if conn:
             conn.close()
 
+
 # Combined endpoint to upload CSV data and return all products
 @app.get("/products/")
-async def get_products():
-    # Upload data from CSV before fetching products
-    upload_csv_data()
-
+async def get_products(search: str = None):
     try:
         conn = create_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM Marketplace;")
+
+        if search:
+            # Use SQL wildcard for exact word match
+            query = "SELECT * FROM Marketplace WHERE product_name LIKE %s"
+            cursor.execute(query, (f"% {search} %",))
+        else:
+            query = "SELECT * FROM Marketplace"
+            cursor.execute(query)
+
         products = cursor.fetchall()
         return products
     except Error as error:
@@ -277,88 +287,6 @@ async def get_products():
         if conn:
             conn.close()
 
-
-
-
-# @app.post("/goals/")
-# async def create_goal(goal: GoalRequest):
-#     conn = create_connection()
-#     if conn is None:
-#         raise HTTPException(status_code=500, detail="Database connection failed")
-#     cursor = conn.cursor(dictionary=True)
-#     try:
-#         query = "INSERT INTO Goals (name, target_amount, current_amount, deadline, user_id) VALUES (%s, %s, %s, %s, %s)"
-#         cursor.execute(query, (goal.name, goal.target_amount, goal.current_amount, goal.deadline, goal.user_id))
-#         conn.commit()
-#         return {"message": "Goal added successfully"}
-#     except Error as error:
-#         raise HTTPException(status_code=500, detail=str(error))
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         if conn:
-#             conn.close()
-
-# @app.get("/goals/{user_id}")
-# async def get_goals(user_id: int):
-#     conn = create_connection()
-#     if conn is None:
-#         raise HTTPException(status_code=500, detail="Database connection failed")
-#     cursor = conn.cursor(dictionary=True)
-#     try:
-#         cursor.execute("SELECT * FROM Goals WHERE user_id = %s", (user_id,))
-#         goals = cursor.fetchall()
-#         return goals
-#     except Error as error:
-#         raise HTTPException(status_code=500, detail=str(error))
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         if conn:
-#             conn.close()
-
-# @app.put("/goals/{goal_id}")
-# async def update_goal(goal_id: int, goal: GoalRequest):
-#     conn = create_connection()
-#     if conn is None:
-#         raise HTTPException(status_code=500, detail="Database connection failed")
-#     cursor = conn.cursor()
-#     try:
-#         query = "UPDATE Goals SET name = %s, target_amount = %s, current_amount = %s, deadline = %s WHERE goal_id = %s AND user_id = %s;"
-#         cursor.execute(query, (goal.name, goal.target_amount, goal.current_amount, goal.deadline, goal_id, goal.user_id))
-#         conn.commit()
-#         if cursor.rowcount == 0:
-#             raise HTTPException(status_code=404, detail="Goal not found")
-#         return {"message": "Goal updated successfully"}
-#     except Error as error:
-#         raise HTTPException(status_code=500, detail=str(error))
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         if conn:
-#             conn.close()
-
-
-# @app.delete("/goals/{goal_id}")
-# async def delete_goal(goal_id: int):
-#     conn = create_connection()
-#     if conn is None:
-#         raise HTTPException(status_code=500, detail="Database connection failed")
-#     cursor = conn.cursor()
-#     try:
-#         query = "DELETE FROM Goals WHERE goal_id = %s;"
-#         cursor.execute(query, (goal_id,))
-#         conn.commit()
-#         if cursor.rowcount == 0:
-#             raise HTTPException(status_code=404, detail="Goal not found")
-#         return {"message": "Goal deleted successfully"}
-#     except Error as error:
-#         raise HTTPException(status_code=500, detail=str(error))
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         if conn:
-#             conn.close()
 
 ### MAIN APP STARTUP ###
 
