@@ -1,119 +1,95 @@
-import csv
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
 from datetime import datetime
 import time
+import csv
 
-# Set up the Selenium WebDriver (this will automatically manage the ChromeDriver)
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+# Set up Chrome WebDriver using WebDriver Manager
+service = Service(ChromeDriverManager().install())
+driver = webdriver.Chrome(service=service)
 
-# URL used for scraping (we can change the keyword from produce to search up other items etc)
-url = "https://www.target.com/s?searchTerm=produce&tref=typeahead%7Cterm%7Cproduce%7C%7C%7Chistory"
+# CSV file setup
+csv_filename = "target_products.csv"
+fields = ["id", "store_name", "product_name", "url", "price", "last_checked_at"]
 
-# Open the page
-driver.get(url)
+# Open the CSV file in write mode
+with open(csv_filename, mode='w', newline='', encoding='utf-8') as csvfile:
+    writer = csv.DictWriter(csvfile, fieldnames=fields)
+    writer.writeheader()  # Write header row
 
-# Give the page some time to load initially
-driver.implicitly_wait(10)
-
-# Function to scroll gradually down the page
-def gradual_scroll_page(driver):
-    last_height = driver.execute_script("return document.body.scrollHeight")
-    while True:
-        driver.execute_script("window.scrollBy(0, 1000);")  # Scroll down by 1000 pixels
-        time.sleep(1)  # Wait for new content to load
-        new_height = driver.execute_script("return document.body.scrollHeight")
-        if new_height == last_height:
-            break
-        last_height = new_height
-
-# Function to click the 'Next Page' button
-def click_next_page(driver):
-    try:
-        next_button = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="next page"]')
-        ActionChains(driver).move_to_element(next_button).click().perform()
-        time.sleep(3)
-        return True
-    except:
-        print("No next page button found or end of pages reached.")
-        return False
-
-# Keep track of the product data
-product_data = []
-seen_links = set()
-
-# Start time for limiting the scraping process to one minute
-start_time = time.time()
-
-# Loop to scrape pages until no more pages are available or 1 minute passes
-while True:
-    if time.time() - start_time > 60:
-        break
+    seen_links = set()  # To avoid scraping duplicate products
+    product_data = []  # List to store all scraped products
     
-    # Find all product card elements on the current page
-    products = driver.find_elements(By.CSS_SELECTOR, 'div[data-test="@web/ProductCard/body"]')
+    # Base URL for the Target product page (without Nao parameter)
+    base_url = "https://www.target.com/c/fresh-vegetables-produce-grocery/-/N-4tglh?Nao="
 
-    # Extract data from the products on the current page
-    for product in products:
-        try:
-            link = product.find_element(By.CSS_SELECTOR, 'a[data-test="product-title"]')
-            link_href = link.get_attribute('href') if link else 'No link available'
-        except:
-            link_href = 'No link available'
+    # Function to scrape product data from a page using Selenium
+    def scrape_page(driver, page_number):
+        # Construct the URL for the current page
+        url = base_url + str(page_number * 12) + "&moveTo=product-list-grid"  # Nao=12 for page 1, Nao=24 for page 2, etc.
+        driver.get(url)
 
-        if link_href in seen_links:
-            continue
-        seen_links.add(link_href)
+        # Allow time for the page to load
+        time.sleep(5)
 
-        try:
-            name = product.find_element(By.CSS_SELECTOR, 'a[data-test="product-title"]')
-            product_name = name.text if name else 'No name available'
-            product_name = product_name.split(' -')[0]
-        except:
-            product_name = 'No name available'
+        # Find all product elements on the page
+        products = driver.find_elements(By.CSS_SELECTOR, 'div[data-test="@web/ProductCard/body"]')
 
-        try:
-            price = product.find_element(By.CSS_SELECTOR, 'span[data-test="current-price"]')
-            price_text = price.text if price else 'No price available'
-        except:
-            price_text = 'No price available'
+        # Extract data from the products on the current page
+        for product in products:
+            try:
+                # Extract product link
+                link = product.find_element(By.CSS_SELECTOR, 'a[data-test="product-title"]')
+                link_href = link.get_attribute('href') if link else 'No link available'
+            except:
+                link_href = 'No link available'
 
-        # Add store name and last checked timestamp
-        store_name = "Target"  # Static since we know we're scraping Target
-        last_checked_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Append product data to the list
-        product_data.append({
-            'id': len(product_data) + 1,  # Auto-increment ID
-            'store_name': store_name,
-            'product_name': product_name,
-            'url': link_href,
-            'price': price_text,
-            'last_checked_at': last_checked_at
-        })
+            # Skip the product if it's already in the set of seen links
+            if link_href in seen_links:
+                continue
+            seen_links.add(link_href)
 
-    gradual_scroll_page(driver)
+            try:
+                # Extract product name
+                name = product.find_element(By.CSS_SELECTOR, 'a[data-test="product-title"]')
+                product_name = name.text.strip() if name else 'No name available'
+                product_name = product_name.split(' -')[0]  # Clean up the name if it contains variants
+            except:
+                product_name = 'No name available'
 
-    if not click_next_page(driver):
-        break
+            try:
+                # Extract product price
+                price = product.find_element(By.CSS_SELECTOR, 'span[data-test="current-price"]')
+                price_text = price.text.strip() if price else 'No price available'
+            except:
+                price_text = 'No price available'
 
-# Write the collected product data to a CSV file
-csv_filename = 'scraped_products.csv'
+            # Add store name and timestamp
+            store_name = "Target"  # Static store name since we're scraping Target
+            last_checked_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            # Append the extracted product data to the list
+            product_data.append({
+                'id': len(product_data) + 1,  # Auto-increment ID
+                'store_name': store_name,
+                'product_name': product_name,
+                'url': link_href,
+                'price': price_text,
+                'last_checked_at': last_checked_at
+            })
 
-# Define the CSV fieldnames
-fieldnames = ['id', 'store_name', 'product_name', 'url', 'price', 'last_checked_at']
+    # Scrape pages 1 to 10
+    for page in range(1,10):
+        scrape_page(driver, page)
 
-# Write the data to a CSV file
-with open(csv_filename, mode='w', newline='', encoding='utf-8') as file:
-    writer = csv.DictWriter(file, fieldnames=fieldnames)
-    writer.writeheader()
-    for product in product_data:
-        writer.writerow(product)
+    # Write the scraped data to the CSV file
+    for data in product_data:
+        print(data)  # Optional: print the data to the console
+        writer.writerow(data)
 
-print(f"Scraped data has been saved to {csv_filename}")
-
-# Close the driver
+# Close the browser when done
 driver.quit()
+
+print(f"Scraping complete. Data saved to '{csv_filename}'.")
