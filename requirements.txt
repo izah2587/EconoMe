@@ -3,4 +3,5 @@ fastapi
 uvicorn 
 pydantic
 mysql-connector-python
+bcrypt
 
