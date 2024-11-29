@@ -131,6 +131,29 @@ async def register(request: RegisterRequest):
         if conn:
             conn.close()
 
+
+@app.get("/users/{user_id}")
+async def get_user(user_id: int):
+    try:
+        conn = create_connection()
+        cursor = conn.cursor(dictionary=True)
+        query = "SELECT * FROM Users WHERE user_id = %s"
+        cursor.execute(query, (user_id,))
+        user = cursor.fetchone()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user
+    except Error as error:
+        raise HTTPException(status_code=500, detail=str(error))
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+
+
 # Function to upload data from CSV to the database
 def upload_csv_data():
     csv_file_paths = [
@@ -423,6 +446,14 @@ async def compare_prices():
         return {"summary": summary}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
+
+
+
+
 
 
 # Upload CSV data at startup
