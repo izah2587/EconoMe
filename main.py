@@ -57,6 +57,14 @@ class GoalRequest(BaseModel):
     current_amount: float
     target_amount: float
 
+
+class UpdateUserModel(BaseModel):
+    dob: str
+    income: int
+    budget: int
+
+
+
 # Database connection helper
 def create_connection():
     """Creates and returns a connection to the database."""
@@ -82,47 +90,68 @@ async def login(request: LoginRequest):
             raise HTTPException(status_code=500, detail="Database connection failed.")
         cursor = conn.cursor(dictionary=True)
 
-        # Check if user exists in the database
         cursor.execute("SELECT * FROM Users WHERE email = %s", (request.email,))
         user = cursor.fetchone()
-        
+        print("User fetched:", user)  # Debug log
+
         if user and bcrypt.checkpw(request.password.encode('utf-8'), user['password'].encode('utf-8')):
-            # Return a success message with user details (no password)
             return {"message": "Login successful", "user": {k: v for k, v in user.items() if k != 'password'}}
         
         raise HTTPException(status_code=401, detail="Invalid email or password")
     except Error as error:
+        print("Error:", error)  # Debug log
         raise HTTPException(status_code=500, detail=str(error))
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+
 
 @app.post("/register")
 async def register(request: RegisterRequest):
     try:
+        print("Incoming request:", request.dict())  # Debug log
         conn = create_connection()
         if not conn:
             raise HTTPException(status_code=500, detail="Database connection failed.")
         cursor = conn.cursor(dictionary=True)
 
-        # Check if user already exists
         cursor.execute("SELECT * FROM Users WHERE email = %s", (request.email,))
         existing_user = cursor.fetchone()
+        print("Existing user check:", existing_user)  # Debug log
+        
         if existing_user:
             raise HTTPException(status_code=400, detail="User already exists.")
 
-        # Hash the password
         hashed_password = bcrypt.hashpw(request.password.encode('utf-8'), bcrypt.gensalt())
 
-        # Register new user
         query = "INSERT INTO Users (name, email, dob, income, password) VALUES (%s, %s, %s, %s, %s)"
         cursor.execute(query, (request.name, request.email, request.dob, request.income, hashed_password.decode('utf-8')))
         conn.commit()
 
         return {"message": "Registration successful"}
     except Error as error:
+        print("Error:", error)  # Debug log
+        raise HTTPException(status_code=500, detail=str(error))
+
+
+
+# Get All Users
+@app.get("/users/")
+async def get_all_users():
+    try:
+        conn = create_connection()
+        if not conn:
+            raise HTTPException(status_code=500, detail="Database connection failed.")
+        cursor = conn.cursor(dictionary=True)
+        
+        query = "SELECT * FROM Users"
+        cursor.execute(query)
+        users = cursor.fetchall()
+        
+        # print("Fetched users:", users)  # Debug log
+        if not users:
+            return {"message": "No users found"}
+        
+        return users
+    except Error as error:
+        print("Database error:", str(error))
         raise HTTPException(status_code=500, detail=str(error))
     finally:
         if cursor:
@@ -131,6 +160,7 @@ async def register(request: RegisterRequest):
             conn.close()
 
 
+# Get User by ID
 @app.get("/users/{user_id}")
 async def get_user(user_id: int):
     try:
@@ -139,6 +169,31 @@ async def get_user(user_id: int):
         query = "SELECT * FROM Users WHERE user_id = %s"
         cursor.execute(query, (user_id,))
         user = cursor.fetchone()
+        
+        # print("Executed query:", query)  # Debugging
+        # print("User fetched:", user)  # Debugging
+
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user
+    except Error as error:
+        print("Database error:", str(error))  # Debugging
+        raise HTTPException(status_code=500, detail=str(error))
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@app.get("/users/email/{email}")
+async def get_user_by_email(email: str):
+    try:
+        conn = create_connection()
+        cursor = conn.cursor(dictionary=True)
+        query = "SELECT * FROM Users WHERE email = %s"
+        cursor.execute(query, (email,))
+        user = cursor.fetchone()
+
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         return user
@@ -149,9 +204,31 @@ async def get_user(user_id: int):
             cursor.close()
         if conn:
             conn.close()
+@app.put("/users/{user_id}")
+async def update_user(user_id: int, user: UpdateUserModel):
+    try:
+        conn = create_connection()
+        if not conn:
+            raise HTTPException(status_code=500, detail="Database connection failed.")
+        cursor = conn.cursor()
 
+        query = """
+        UPDATE Users
+        SET dob = %s, income = %s, budget = %s
+        WHERE user_id = %s
+        """
+        cursor.execute(query, (user.dob, user.income, user.budget, user_id))
+        conn.commit()
 
-
+        return {"message": "User updated successfully"}
+    except Error as error:
+        print(f"Error updating user: {error}")
+        raise HTTPException(status_code=500, detail="Failed to update user.")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 # Function to upload data from CSV to the database
 def upload_csv_data():
@@ -445,13 +522,6 @@ async def compare_prices():
         return {"summary": summary}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-
-
-
-
-
 
 
 
